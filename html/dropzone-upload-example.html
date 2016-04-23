@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Upload images</title>
+        <script type="text/javascript" src="/js/dropzone.js"></script>
+        <script type="text/javascript" src="/js/minified.js"></script>
+        <link href="/css/dropzone.css" rel="stylesheet" type="text/css" />
+        <link href="/css/mystyle.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <div id="myuploadzone" class="dropzone">
+            <div class="dz-message">
+                Drag/Drop or Click to upload Images
+                <br> <span class="note">Only Images are allowed</span>
+            </div>
+        </div>
+        <div>
+            <h2>Just uploaded onto Server</h2>
+            <ul id="downloadzone">
+            </ul>
+        </div>
+        <div>
+            <h2>Already on Server</h2>
+            <ul id="alreadyonzone">
+                {% for each in already_on_server %}
+                    <li>
+                        <img class="preview" src="{{ blob_serving_url }}{{ each.blob_256 }}"/>
+                        <a href="{{ blob_serving_url }}{{ each.blob_256 }}">256px</a>
+                        <a href="{{ blob_serving_url }}{{ each.blob_512 }}">512px</a>
+                        <a href="{{ blob_serving_url }}{{ each.blob_800 }}">800px</a>
+                        <a href="{{ blob_serving_url }}{{ each.blob_1600 }}">1600px</a>
+                        <a href="{{ delete_image_collection }}{{ each.public_hash_id }}">delete me</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <script type="text/javascript">
+            var MINI = require('minified');
+            var _=MINI._, $=MINI.$, $$=MINI.$$, EE=MINI.EE, HTML=MINI.HTML;
+
+            Dropzone.autoDiscover = false; // turn off the auto discovery
+
+            var myDropzone = new Dropzone(
+                "div#myuploadzone",
+                { 
+                    url: "{{ blob_process }}",
+                    addRemoveLinks: true,
+                    acceptedFiles: 'image/*',
+                    parallelUploads: 1,
+                    uploadMultiple: false,
+                    maxFilesize: {{ max_upload_size }},
+                }
+            );
+
+            myDropzone.on("processing", function(file){
+                // we request for a new url for uploading next
+                var result = $.request('get', '{{ refresh_url }}');
+                result.then(function success(txt) {
+                    myDropzone.options.url =  txt; // get a new upload url
+                });
+            });
+
+            myDropzone.on("success", function(file, message) {
+                var small_list = EE('li', '');
+
+                small_list.add(EE('img', {'@src':'{{ blob_serving_url }}'+message.stored[2].blob_key, '@class':'preview'}));
+                
+                arrayLength = message.stored.length;
+                console.log(arrayLength);
+                for (var i=0;i<arrayLength;i++){
+                    small_list.add(EE('a', {'@href':'{{ blob_serving_url }}' + message.stored[i].blob_key}, message.stored[i].filename));
+                }
+
+                // add a delete link of the image collection
+                small_list.add(EE('a', {'@href':'{{ delete_image_collection }}' + message.public_hash_id}, 'delete it'));
+
+                $('#downloadzone').add(small_list);
+            });
+
+            myDropzone.on("error", function(file, message) { alert(message); });
+        </script>
+    </body>
+</html>
