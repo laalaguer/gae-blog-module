@@ -203,6 +203,8 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
             self.response.charset = 'utf-8'
             self.response.content_type = response2.headers['content-type']
             self.response.out.write(json.dumps(response2_loaded_object,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            # delete the original file uploaded to blobstore,all of them
+            [blobstore.delete(each.key()) for each in self.get_uploads('file')]
              
 
 
