@@ -61,7 +61,7 @@
             });
 
             myDropzone.on("success", function(file, message) {
-                var small_list = EE('li', '');
+                var small_list = EE('li', 'process_time: '+ message.process_time);
 
                 small_list.add(EE('img', {'@src':'{{ blob_serving_url }}'+message.stored[2].blob_key, '@class':'preview'}));
                 

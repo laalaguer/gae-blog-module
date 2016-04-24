@@ -5,7 +5,7 @@ import random
 from google.appengine.ext import blobstore
 
 class ProcessedImages(ndb.Model):
-    ''' A class to get hold of all the single images that belongs to a single image '''
+    ''' A class to get hold of all the processed images that belongs to a single image '''
     public_hash_id = ndb.StringProperty(default='') # a random job id, for marking purpose.
 
     blob_256 = ndb.BlobKeyProperty()
@@ -36,11 +36,13 @@ class ProcessedImages(ndb.Model):
         return cls.query().order(-cls.add_date).fetch()
 
 def add_processed_image(blob_256,blob_512,blob_800,blob_1600):
+    ''' public method for adding an processed image collection '''
     item = ProcessedImages(blob_256=blob_256,blob_512=blob_512,blob_800=blob_800,blob_1600=blob_1600)
     item_key = item.put()
     return item.public_hash_id # a string
 
 def delete_processed_image(hash_id):
+    ''' delete a processed image collection '''
     existing = ProcessedImages.query_by_hash(hash_id)
     length = len(existing)
     for each in existing:

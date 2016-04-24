@@ -5,10 +5,10 @@ import webapp2
 import json
 from google.appengine.api import urlfetch
 import db
-
+import time
 
 class ServeBlobHandler(blobstore_handlers.BlobstoreDownloadHandler):
-    ''' Get and serve the images'''
+    ''' Serve the images to the public '''
     def get(self, photo_key):
         if not blobstore.get(photo_key):
             self.error(404)
@@ -17,7 +17,7 @@ class ServeBlobHandler(blobstore_handlers.BlobstoreDownloadHandler):
 
 class RefreshUploadUrlHandler(webapp2.RequestHandler):
     ''' get a refresh uploading url where user can upload a picture
-    You can use it inside a <form action="">, or , from a javascript applet
+    You can use it inside a <form action="">, or , from a javascript ajax
     Return: the uploading url
     '''
     def get(self):
@@ -49,7 +49,7 @@ class DropzoneExampleHandler(webapp2.RequestHandler):
 
 
 class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
-    ''' gets an image and transform it into largest scale, then call another handler to handle it'''
+    ''' Gets an image and transform it into different scale using GAE Image Service.Then call another handler to handle it'''
     @classmethod
     def encode_multipart_formdata(cls, fields, files, mimetype='image/jpeg'):
         """
@@ -81,38 +81,96 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
         content_type = 'multipart/form-data; boundary=%s' % boundary
         return content_type, body
 
-    def post(self):
-        # get all the uploaded file info
-        myfile = self.get_uploads('file')[0] 
-        # 2. get the compressed files as different size
-        compressed_file_url_list = [
-            images.get_serving_url(myfile.key(), size=1600, crop=False),
-            images.get_serving_url(myfile.key(), size=800, crop=False),
-            images.get_serving_url(myfile.key(), size=512, crop=True),
-            images.get_serving_url(myfile.key(), size=256, crop=True),
-        ]
-
-        format_size_list = ['1600','800','512','256']
-
-        response_list = []
-        for each_url in compressed_file_url_list:
-            response = urlfetch.fetch(
-                            url=each_url, # the url
+    @classmethod
+    def is_image(cls, blobinfo):
+        big_url = images.get_serving_url(blobinfo.key(), size=1600, crop=False)
+        response = urlfetch.fetch(
+                            url=big_url, # the url
                             method=urlfetch.GET,
                             deadline=30,
                             validate_certificate=False)
-            response_list.append(response)
 
-        content_type_str = response_list[0].headers['content-type'] # maybe image/jpeg
-        #img_file = response.content # get the image, as a string (note: not a file yet)
+        if response.status_code >= 299:
+            raise Exception('Not an Image')
 
-        args_list = [ ('file', 'processed_file_'+ y, x.content) for x,y in zip(response_list, format_size_list)]
+    def post(self):
+        # get all the uploaded file info
+        myfile = self.get_uploads('file')[0] # this is a blob key info
+        
+        # too large file, we bail out
+        if myfile.size > self.app.config['max_upload_size'] * 1000000:  # in B, so kb = 1000B, mb==1000000B
+            self.error(413)
+            self.response.out.write('file too large: %s Max allowed: %s MB' % (str(myfile.size), self.app.config['max_upload_size']))
+            # delete the original file uploaded to blobstore,all of them
+            [blobstore.delete(each.key()) for each in self.get_uploads('file')]
+            return
+
+        # if not image, we bail out
+        try:
+            ImagePreProcessHandler.is_image(myfile)
+        except Exception as ex:
+            self.error(406)
+            self.response.out.write(str(ex))
+            self.response.out.write(' Image in "file" Field is danmaged, or not image')
+            # delete the original file uploaded to blobstore,all of them
+            [blobstore.delete(each.key()) for each in self.get_uploads('file')]
+            return
+
+        ###
+        start_time = time.time()
+        thumbnails = []
+        img = images.Image(blob_key=myfile.key())
+        img.resize(width=1600, height=1600)
+        thumbnail_1600 = img.execute_transforms(output_encoding=images.JPEG)
+        thumbnails.append(thumbnail_1600)
+        img.resize(width=800, height=800)
+        thumbnail_800 = img.execute_transforms(output_encoding=images.JPEG)
+        thumbnails.append(thumbnail_800)
+        img.resize(width=512, height=512,crop_to_fit=True)
+        thumbnail_512 = img.execute_transforms(output_encoding=images.JPEG)
+        thumbnails.append(thumbnail_512)
+        img.resize(width=256, height=256,crop_to_fit=True)
+        thumbnail_256 = img.execute_transforms(output_encoding=images.JPEG)
+        thumbnails.append(thumbnail_256)
+        end_time = time.time()
+        elapsed_time = str(end_time - start_time)
+
+        content_type_str = 'image/jpeg'
+        format_size_list = ['1600','800','512','256']
+        args_list = [ ('file', 'processed_file_'+ y, x) for x,y in zip(thumbnails, format_size_list)]
+        ###
+
+        # This is transformation using url get, I think it is slow, so reprecated
+        #2. get the compressed files as different size
+        # start_time = time.time()
+        # compressed_file_url_list = [
+        #     images.get_serving_url(myfile.key(), size=1600, crop=False),
+        #     images.get_serving_url(myfile.key(), size=800, crop=False),
+        #     images.get_serving_url(myfile.key(), size=512, crop=True),
+        #     images.get_serving_url(myfile.key(), size=256, crop=True),
+        # ]
+
+        # format_size_list = ['1600','800','512','256']
+
+        # response_list = []
+        # for each_url in compressed_file_url_list:
+        #     response = urlfetch.fetch(
+        #                     url=each_url, # the url
+        #                     method=urlfetch.GET,
+        #                     deadline=30,
+        #                     validate_certificate=False)
+        #     response_list.append(response)
+        # end_time = time.time()
+        # elapsed_time = str(end_time - start_time)
+        
+        # content_type_str = response_list[0].headers['content-type'] # maybe image/jpeg
+        # args_list = [ ('file', 'processed_file_'+ y, x.content) for x,y in zip(response_list, format_size_list)]
+
         # 3. write the picture to blob, again
-        # Write new picture to blob
         content_type, body = ImagePreProcessHandler.encode_multipart_formdata(
-          [], args_list, content_type_str) #[('file', 'processed_file', img_file)]
-        # 4. upload to the image storage handler
-        # when success, store a DB storage object that holds these images
+          [], args_list, content_type_str)
+        #4. upload to the image storage handler
+        #when success, store a DB storage object that holds these images
         response2 = urlfetch.fetch(
           url=blobstore.create_upload_url(self.app.config['blob_store_final']),
           payload=body,
@@ -141,13 +199,11 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
 
             public_hash_id = db.add_processed_image(**arg_list_db)
             response2_loaded_object['public_hash_id'] = public_hash_id
+            response2_loaded_object['process_time'] = elapsed_time
             self.response.charset = 'utf-8'
             self.response.content_type = response2.headers['content-type']
             self.response.out.write(json.dumps(response2_loaded_object,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
-        
-
-        for each in self.get_uploads('file'):
-            blobstore.delete(each.key()) # delete the original file uploaded to blobstore,all of them
+             
 
 
 class ImageStoreHandler(blobstore_handlers.BlobstoreUploadHandler):
