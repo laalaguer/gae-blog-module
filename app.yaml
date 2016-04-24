@@ -11,10 +11,10 @@ handlers:
 - url: /js
   static_dir: html/js
 
-- url: .*
-  script: main.app
-  secure: always
+- url: /picture/.*
+  script: picture_app.app
   login: admin
+
 
 libraries:
 - name: webapp2
