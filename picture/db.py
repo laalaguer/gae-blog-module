@@ -14,6 +14,7 @@ class ProcessedImages(ndb.Model):
     blob_1600 = ndb.BlobKeyProperty()
     description = ndb.StringProperty(default='') # description of the picture, default is none
     tags = ndb.StringProperty(repeated=True) # the tokenized description of this picture
+    public = ndb.BooleanProperty(default=False) # if this image is public accessable
     
     last_touch_date_str = ndb.StringProperty()
     add_date = ndb.DateTimeProperty(auto_now_add=True)
@@ -34,20 +35,29 @@ class ProcessedImages(ndb.Model):
             self.tags = self.description.lower().split()
 
     @classmethod
-    def query_by_hash(cls, hash_value):
-        return cls.query(cls.public_hash_id == hash_value).order(-cls.add_date).fetch()
+    def query_by_hash(cls, hash_value, allowed_user=False):
+        if allowed_user:
+            return cls.query(cls.public_hash_id == hash_value).order(-cls.add_date).fetch()
+        else: # only return public items
+            return cls.query(cls.public_hash_id == hash_value, cls.public == True).order(-cls.add_date).fetch()
     
     @classmethod
-    def query_by_tags(cls, tags): # tags is a input list []
-        return cls.query(cls.tags.IN(tags)).order(-cls.add_date).fetch()
+    def query_by_tags(cls, tags, allowed_user=False): # tags is a input list []
+        if allowed_user:
+            return cls.query(cls.tags.IN(tags)).order(-cls.add_date).fetch()
+        else:
+            return cls.query(cls.tags.IN(tags), cls.public == True).order(-cls.add_date).fetch()
 
     @classmethod
-    def query_whole(cls):
-        return cls.query().order(-cls.add_date).fetch()
+    def query_whole(cls, allowed_user=False):
+        if allowed_user:
+            return cls.query().order(-cls.add_date).fetch()
+        else:
+            return return cls.query(cls.public == True).order(-cls.add_date).fetch()
 
-def add_processed_image(blob_256,blob_512,blob_800,blob_1600,description=''):
+def add_processed_image(blob_256,blob_512,blob_800,blob_1600,description='',public=True):
     ''' public method for adding an processed image collection '''
-    item = ProcessedImages(blob_256=blob_256,blob_512=blob_512,blob_800=blob_800,blob_1600=blob_1600,description=description)
+    item = ProcessedImages(blob_256=blob_256,blob_512=blob_512,blob_800=blob_800,blob_1600=blob_1600,description=description,public=public)
     item_key = item.put()
     return item.public_hash_id # a string
 

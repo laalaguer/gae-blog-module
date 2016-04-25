@@ -274,11 +274,24 @@ class ImageStoreHandler(blobstore_handlers.BlobstoreUploadHandler):
 
 class DeleteProcessedImageCollectionHandler(webapp2.RequestHandler):
     def get(self, public_hash_id):
-        counts = db.delete_processed_image(public_hash_id)
-        self.response.out.write(counts)
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        try:
+            db.delete_processed_image(public_hash_id)
+            d['success'] = True
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
 
 
-class UpdateImageDescriptionHandler(webapp2.RequestHandler):
+class UpdateProcessedImageDescriptionHandler(webapp2.RequestHandler):
     '''update the image description
         Return {
             'success': true/false,
