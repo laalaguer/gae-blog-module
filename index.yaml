@@ -10,6 +10,31 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: Article
+  properties:
+  - name: language_tags
+  - name: add_date
+    direction: desc
+
+- kind: Article
+  properties:
+  - name: language_tags
+  - name: tags
+  - name: add_date
+    direction: desc
+
+- kind: Article
+  properties:
+  - name: public_hash_id
+  - name: add_date
+    direction: desc
+
+- kind: Article
+  properties:
+  - name: tags
+  - name: add_date
+    direction: desc
+
 - kind: ProcessedImages
   properties:
   - name: public_hash_id

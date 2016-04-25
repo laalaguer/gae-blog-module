@@ -7,23 +7,52 @@ import random
 
 class ArticleTag(ndb.Model):
     ''' A module that represent tags of articles, dont forget tags in your blogs! They are like keywords '''
-    tag = ndb.StringProperty(default='') # tag name
-    count = ndb.IntegerProperty(default=0) # how many times tag has been refered in article.
+    tags = ndb.StringProperty(repeated=True) # tags name
     add_date = ndb.DateTimeProperty(auto_now_add=True)
     
     @classmethod
-    def query_whole(cls):
-        return cls.query().order(-cls.add_date).fetch()
+    def query_one(cls):
+        return cls.query().order(-cls.add_date).fetch(1)
+
+    @classmethod
+    def add_tags(cls, tags):
+        new_tags = list(set(tags))
+        # the last tag collection
+        existing = cls.query_one()
+        if len(existing)>0:
+            the_last = existing[0]
+            for each in new_tags:
+                if not (each in the_last.tags):
+                    the_last.tags.append(each.lower())
+            the_last.put()
+        else:
+            # we dont have tags object, then we create one
+            cls(tags=new_tags).put()
 
 
 class LanguageTag(ndb.Model):
     ''' A module that represent tags of language '''
-    tag = ndb.StringProperty(default='') # tag name
+    tags = ndb.StringProperty(repeated=True) # tag name
     add_date = ndb.DateTimeProperty(auto_now_add=True)
     
     @classmethod
-    def query_whole(cls):
-        return cls.query().order(-cls.add_date).fetch()
+    def query_one(cls):
+        return cls.query().order(-cls.add_date).fetch(1)
+
+    @classmethod
+    def add_tags(cls, tags):
+        new_tags = list(set(tags))
+        # the last tag collection
+        existing = cls.query_one()
+        if len(existing)>0:
+            the_last = existing[0]
+            for each in new_tags:
+                if not (each in the_last.tags):
+                    the_last.tags.append(each.lower())
+            the_last.put()
+        else:
+            # we dont have tags object, then we create one
+            cls(tags=new_tags).put()
 
 
 class Article(ndb.Model):
@@ -36,7 +65,7 @@ class Article(ndb.Model):
     '''
     title = ndb.StringProperty(default='') # title of article
     author = ndb.StringProperty(default='') # author of article
-    article = ndb.TextProperty(default='') # actual text of article, this is the pure html part.
+    html_body = ndb.TextProperty(default='') # actual text of article, this is the pure html part.
     tags = ndb.StringProperty(repeated=True) # tags, keywords of an article, a list
     language_tags = ndb.StringProperty(repeated=True) # languages of an article, a list.
     
@@ -55,6 +84,13 @@ class Article(ndb.Model):
             self.public_hash_id = m.hexdigest()
 
         self.last_touch_date_str = factor_one
+
+        # convert all the tags and language tags into lowercase
+        for each in self.tags:
+            each = each.lower()
+
+        for each in self.language_tags:
+            each = each.lower()
     
     @classmethod
     def query_whole(cls):
@@ -93,3 +129,7 @@ class Article(ndb.Model):
     @classmethod
     def query_by_language(cls, language):
         return cls.query(cls.language_tags == language).order(-cls.add_date).fetch()
+
+    @classmethod
+    def query_by_language_and_tag(cls, language, tag):
+        return cls.query(cls.language_tags == language, cls.tags == tag).order(-cls.add_date).fetch()

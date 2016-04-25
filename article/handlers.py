@@ -8,23 +8,193 @@ import db
 class CreateArticleHandler(webapp2.RequestHandler):
     ''' a post handler, receives a json and create an article '''
     def post(self):
-        title = self.request.get('title', 'Too lazy, No Title')
-        author = self.request.get('author', '')
-        article = self.request.get('article','')
-        tags = self.request.
-    	'tags':['work','travel',],
-    	'language_tags':['english','chinese',],
-        
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        try:
+            jsonstring = self.request.body
+            payload = json.loads(jsonstring)
+            if payload:
+                article = payload['article']
+                title = article['title']
+                author = article['author']
+                html_body = article['html_body']
+                tags = [x.lower() for x in article['tags']] # a list
+                language_tags = [x.lower() for x in article['language_tags']] # a list
+                # store article
+                item = db.Article(title=title,author=author,html_body=html_body,tags=tags,language_tags=language_tags)
+                item.put()
+                # store tags
+                db.ArticleTag.add_tags(tags)
+                # store language tags
+                db.LanguageTag.add_tags(language_tags)
+                # prepare reponse
+                d['success'] = True
+                d['public_hash_id'] = item.public_hash_id
+                self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+                return
+            else:
+                self.error(406)
+                d['success'] = False
+                d['fail_reason'] = 'json is empty'
+                self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+                return
+        except Exception as ex:
+            self.error(406)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+
 class OperateArticleHandler(webapp2.RequestHandler):
     ''' GET, PUT, DELETE handler, modify the article '''
     def get(self, hash_id):
         ''' send back user a json-represented article '''
-        pass
-    
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        try:
+            # search for the article in database, then return the article as json
+            articles = db.Article.query_by_hash(hash_id)
+            if len(articles) > 0:
+                d['success'] = True
+                d['article'] = articles[0].to_dict(exclude=['add_date'])
+            else:
+                d['success'] = False
+                d['fail_reason'] = 'article not found'
+
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+
+
     def put(self, hash_id):
         ''' modify a field, or fields of an artile '''
-        pass
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        # prepare the user uploaded json
+        payload = None
+        try:
+            jsonstring = self.request.body
+            payload = json.loads(jsonstring)
+            article = payload['article']
+        except Exception as ex:
+            self.error(406)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+        
+        try:
+            # search for the article in database, then return the article as json
+            articles = db.Article.query_by_hash(hash_id)
+            if len(articles) > 0:
+                target = articles[0].to_dict(exclude=['add_date','last_touch_date_str','public_hash_id']) # we don't allow other modification
+
+                for key in article.keys():
+                    if key in target.keys():
+                        if key == 'tags' :
+                            values = [x.lower() for x in article[key]]
+                            setattr(articles[0], key, values)
+                            # store tags
+                            db.ArticleTag.add_tags(article[key])
+
+                        elif key == 'language_tags':
+                            values = [x.lower() for x in article[key]]
+                            setattr(articles[0], key, values)
+                            # store language tags
+                            db.LanguageTag.add_tags(article[key])
+                        else:
+                            setattr(articles[0], key, article[key])
+
+                articles[0].put()
+                print 'after put, tags',articles[0].tags
+                d['success'] = True
+            else:
+                d['success'] = False
+                d['fail_reason'] = 'article not found'
+
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
     
     def delete(self, hash_id):
         ''' delete an article '''
-        pass
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+
+        try:
+            # search for the article in database, then return the article as json
+            articles = db.Article.query_by_hash(hash_id)
+            if len(articles) > 0:
+                for each in articles:
+                    each.key.delete()
+            d['success'] = True
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+
+
+class SearchArticleByTagHandler(webapp2.RequestHandler):
+    def get(self):
+        wanted_tag = self.request.get('tag', None)
+        wanted_language_tag = self.request.get('language_tag', None)
+
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+            
+        try:
+            hits = None
+            if wanted_tag and wanted_language_tag:
+                hits = db.Article.query_by_language_and_tag(wanted_language_tag, wanted_tag)
+            elif wanted_tag:
+                hits = db.Article.query_by_tag(wanted_tag)
+            elif wanted_language_tag:
+                hits = db.Article.query_by_language(wanted_language_tag)
+            else:
+                d['count'] = 0
+
+            if hits:
+                d['count'] = len(hits)
+                d['articles'] = []
+                for each in hits:
+                    d['articles'].append(each.to_dict(exclude=['add_date']))
+            else:
+                d['count'] = 0
+
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return

@@ -15,6 +15,14 @@ handlers:
   script: picture_app.app
   login: admin
 
+- url: /search_article
+  script: article_app.app
+
+- url: /article
+  script: article_app.app
+
+- url: /article/.*
+  script: article_app.app
 
 libraries:
 - name: webapp2
