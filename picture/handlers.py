@@ -121,46 +121,35 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
 
         ### Use PIL library to transform image transformation
         start_time = time.time()
-        
+
         im = PILImage.open(myfile.open())
-        im2 = im.copy()
+        if im.mode not in ("L","RGB"):
+            im = im.convert("RGB")
 
         im.thumbnail((1600,1600)) # if the image size is smaller than this size, it will not stretch
         buf_1600 = StringIO()
         im.save(buf_1600,"JPEG",quality=95) # 95% can save 1/2 space
-        im.close()
-        
         data_1600 = buf_1600.getvalue()
         buf_1600.close() # free memory
-        buf_1600 = None
 
-        im2.thumbnail((800,800))
+        im.thumbnail((800,800))
         buf_800 = StringIO()
-        im2.save(buf_800,"JPEG",quality=95)
+        im.save(buf_800,"JPEG",quality=95)
         data_800 = buf_800.getvalue()
         buf_800.close()
-        buf_800 = None
 
-        if im2.mode not in ("L","RGB"):
-            im2 = im2.convert("RGB")
-
-        im3 = PILImageOps.fit(im2, (512, 512),PILImage.ANTIALIAS)
+        im3 = PILImageOps.fit(im, (512, 512),PILImage.ANTIALIAS)
         buf_512 = StringIO()
         im3.save(buf_512,"JPEG",quality=95)
         data_512 = buf_512.getvalue()
         buf_512.close()
-        buf_512 = None
+        
 
-        im4 = PILImageOps.fit(im2, (256, 256),PILImage.ANTIALIAS) # let the edge soft, not so sharp
+        im4 = PILImageOps.fit(im, (256, 256),PILImage.ANTIALIAS) # let the edge soft, not so sharp
         buf_256 = StringIO()
         im4.save(buf_256,"JPEG",quality=95)
         data_256 = buf_256.getvalue()
         buf_256.close()
-        buf_256 = None
-        
-        im2.close()
-        im3.close()
-        im4.close()
 
         thumbnails = [data_1600,data_800,data_512,data_256]
         
