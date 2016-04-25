@@ -68,7 +68,6 @@ class Article(ndb.Model):
     html_body = ndb.TextProperty(default='') # actual text of article, this is the pure html part.
     tags = ndb.StringProperty(repeated=True) # tags, keywords of an article, a list
     language_tags = ndb.StringProperty(repeated=True) # languages of an article, a list.
-
     private = ndb.BooleanProperty(default=False) # if this article is private or not
     
     public_hash_id = ndb.StringProperty(default='') # a random job id, for marking purpose.

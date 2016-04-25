@@ -12,6 +12,9 @@ class ProcessedImages(ndb.Model):
     blob_512 = ndb.BlobKeyProperty()
     blob_800 = ndb.BlobKeyProperty()
     blob_1600 = ndb.BlobKeyProperty()
+    description = ndb.StringProperty(default='') # description of the picture, default is none
+    tags = ndb.StringProperty(repeated=True) # the tokenized description of this picture
+    
     last_touch_date_str = ndb.StringProperty()
     add_date = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -25,19 +28,26 @@ class ProcessedImages(ndb.Model):
         if not self.public_hash_id: # if the hash is not available
             self.public_hash_id = m.hexdigest()
 
-        self.last_touch_date_str = factor_one
+        self.last_touch_date_str = factor_one # refresh the 
+        
+        if self.description: # if description is not none, then update the tags token
+            self.tags = self.description.lower().split()
 
     @classmethod
     def query_by_hash(cls, hash_value):
         return cls.query(cls.public_hash_id == hash_value).order(-cls.add_date).fetch()
+    
+    @classmethod
+    def query_by_tags(cls, tags): # tags is a input list []
+        return cls.query(cls.tags.IN(tags)).order(-cls.add_date).fetch()
 
     @classmethod
     def query_whole(cls):
         return cls.query().order(-cls.add_date).fetch()
 
-def add_processed_image(blob_256,blob_512,blob_800,blob_1600):
+def add_processed_image(blob_256,blob_512,blob_800,blob_1600,description=''):
     ''' public method for adding an processed image collection '''
-    item = ProcessedImages(blob_256=blob_256,blob_512=blob_512,blob_800=blob_800,blob_1600=blob_1600)
+    item = ProcessedImages(blob_256=blob_256,blob_512=blob_512,blob_800=blob_800,blob_1600=blob_1600,description=description)
     item_key = item.put()
     return item.public_hash_id # a string
 

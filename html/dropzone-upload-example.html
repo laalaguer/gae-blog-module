@@ -59,6 +59,14 @@
                     myDropzone.options.url =  txt; // get a new upload url
                 });
             });
+			
+            myDropzone.on("error", function(file){
+                // we request for a new url for uploading next
+                var result = $.request('get', '{{ refresh_url }}');
+                result.then(function success(txt) {
+                    myDropzone.options.url =  txt; // get a new upload url
+                });
+            });
 
             myDropzone.on("success", function(file, message) {
                 var small_list = EE('li', 'process_time: '+ message.process_time);

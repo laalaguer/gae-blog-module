@@ -122,7 +122,7 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
         
         start_time = time.time()
         ### Use PIL library to transform image transformation
-        ### But this process is slow and memory too huge to consume
+        ### But this process is slow and memory too huge to consume, quality is high
         # im = PILImage.open(myfile.open())
         # if im.mode not in ("L","RGB"):
         #     im = im.convert("RGB")
@@ -156,7 +156,7 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
         
         
         ### This is using google image service to perform image transforation
-        ### Which will result quite blur in the final quality
+        ### Which will result quite blur in the final quality, but it is fast
         thumbnails = []
         img = images.Image(blob_key=myfile.key())
         img.resize(width=1600, height=1600) # if image size is smaller than this size, it will stretch to this size
@@ -180,7 +180,7 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
         args_list = [ ('file', 'processed_file_'+ y, x) for x,y in zip(thumbnails, format_size_list)]
         ###
 
-        # This is transformation using url get, I think it is slow, so reprecated
+        ### This is transformation using url get, I think it is slow, so deprecated
         #2. get the compressed files as different size
         # start_time = time.time()
         # compressed_file_url_list = [
@@ -247,7 +247,6 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
             [blobstore.delete(each.key()) for each in self.get_uploads('file')]
              
 
-
 class ImageStoreHandler(blobstore_handlers.BlobstoreUploadHandler):
     '''  Store the blob one by one and return the blob key.
         Return: a json, structure like
@@ -277,3 +276,33 @@ class DeleteProcessedImageCollectionHandler(webapp2.RequestHandler):
     def get(self, public_hash_id):
         counts = db.delete_processed_image(public_hash_id)
         self.response.out.write(counts)
+
+
+class UpdateImageDescriptionHandler(webapp2.RequestHandler):
+    '''update the image description
+        Return {
+            'success': true/false,
+        }
+    '''
+    def post(self, public_hash_id):
+        description = self.request.get('description','')
+        
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        try:
+            hits = db.ProcessedImages.query_by_hash(public_hash_id)
+            if len(hits) > 0:
+                hits[0].description = description
+                hits[0].put() # store it
+                d['success'] = True
+            else:
+                d['success'] = False
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return

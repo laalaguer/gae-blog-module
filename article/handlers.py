@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # As the article, tag, language_tag are all text based, we use json handlers as a simgle example
+# If you wish to see the 
 import webapp2
 import json
 import db

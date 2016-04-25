@@ -22,4 +22,5 @@ app = webapp2.WSGIApplication(routes=[
     webapp2.Route('/picture/blob_store_final', handler=picture.handlers.ImageStoreHandler),
     webapp2.Route('/picture/view_photo/<photo_key>', handler=picture.handlers.ServeBlobHandler),
     webapp2.Route('/picture/delete_by_hash/<public_hash_id>', handler=picture.handlers.DeleteProcessedImageCollectionHandler),
+    webapp2.Route('/picture/update_description/<public_hash_id>', handler=picture.handlers.UpdateImageDescriptionHandler),
 ], debug=True, config=config)
