@@ -13,4 +13,6 @@ app = webapp2.WSGIApplication(routes=[
     webapp2.Route('/article', handler=article.handlers.CreateArticleHandler),
     webapp2.Route('/article/<hash_id>', handler=article.handlers.OperateArticleHandler),
     webapp2.Route('/search_article', handler=article.handlers.SearchArticleByTagHandler),
+    webapp2.Route('/tags', handler=article.handlers.ListTagsHandler),
+    webapp2.Route('/language_tags', handler=article.handlers.ListLanguageTagsHandler),
 ], debug=True, config=config)

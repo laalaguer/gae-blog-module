@@ -48,6 +48,36 @@ class CreateArticleHandler(webapp2.RequestHandler):
             self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
 
+    def get(self):
+        ''' get all the articles, or part of it, choose by offset, amount and chrono'''
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+
+        try:
+            offset = int(self.request.get('offset',0))
+            amount = int(self.request.get('amount',10))
+            chrono = str(self.request.get('chrono', 'false'))
+            if chrono == 'true':
+                chrono = True
+            else:
+                chrono = False
+
+            hits = db.Article.query_by_page(offset, amount, chrono)
+            d['count'] = len(hits)
+            d['articles'] = []
+            for each in hits:
+                d['articles'].append(each.to_dict(exclude=['add_date','html_body']))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+
+        except Exception as ex:
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+
+
 class OperateArticleHandler(webapp2.RequestHandler):
     ''' GET, PUT, DELETE handler, modify the article '''
     def get(self, hash_id):
@@ -170,7 +200,7 @@ class SearchArticleByTagHandler(webapp2.RequestHandler):
         self.response.content_type = 'application/json'
         # prepare the response object
         d = {}
-            
+
         try:
             hits = None
             if wanted_tag and wanted_language_tag:
@@ -186,7 +216,7 @@ class SearchArticleByTagHandler(webapp2.RequestHandler):
                 d['count'] = len(hits)
                 d['articles'] = []
                 for each in hits:
-                    d['articles'].append(each.to_dict(exclude=['add_date']))
+                    d['articles'].append(each.to_dict(exclude=['add_date','html_body']))
             else:
                 d['count'] = 0
 
@@ -198,3 +228,27 @@ class SearchArticleByTagHandler(webapp2.RequestHandler):
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
             self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
+
+class ListTagsHandler(webapp2.RequestHandler):
+    def get(self):
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        hits = db.ArticleTag.query_one()
+        d['tags'] = hits[0].tags
+        d['count'] = len(hits[0].tags)
+        self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+
+class ListLanguageTagsHandler(webapp2.RequestHandler):
+    def get(self):
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        hits = db.LanguageTag.query_one()
+        d['tags'] = hits[0].tags
+        d['count'] = len(hits[0].tags)
+        self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))

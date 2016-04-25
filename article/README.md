@@ -16,6 +16,7 @@ DELETE /article/<hash_id> 	# delete article, get back true or false.
 
 Design in Details:
 ```
+create an article
 POST /article
 request
 {
@@ -36,6 +37,29 @@ response
 }
 
 ```
+Get all the articles, by page and offset
+GET /article?offset, amount, chrono
+response:
+{
+	"count" : 10,
+	"articles" : [
+		{
+			"public_hash_id": xxx,
+			"last_touch_date_str": xxx,
+			"author":xxx,
+			"title":xxx,
+			"tags" : [],
+		},
+		{
+			...
+		}
+		
+	]
+}
+
+
+```
+get an article
 GET  /article/<hash_id>
 response
 {
@@ -60,6 +84,7 @@ response
 ```
 
 ```
+update an article
 PUT  /article/<hash_id>
 request: # these fields can be optional, but the other fileds will be omitted by server.
 {
@@ -81,6 +106,7 @@ response
 ```
 
 ```
+delete an article
 DELETE /article/<hash_id>
 response
 {

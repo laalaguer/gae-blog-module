@@ -101,10 +101,10 @@ class Article(ndb.Model):
     def query_by_page(cls, page_offset, each_page_amount, chrono=False):
         ''' if chronological, from far to near, query a results page by page''' 
         if chrono == True:
-            return cls.query().order(cls.target_date).fetch(offset=page_offset,limit=each_page_amount)
+            return cls.query().order(cls.add_date).fetch(offset=page_offset,limit=each_page_amount)
             # return from offset, each page result limit.
         else:
-            return cls.query().order(-cls.target_date).fetch(offset=page_offset,limit=each_page_amount)
+            return cls.query().order(-cls.add_date).fetch(offset=page_offset,limit=each_page_amount)
     
     @classmethod
     def query_by_hash(cls, hash_value):
