@@ -37,7 +37,9 @@ response
 }
 
 ```
+
 Get all the articles, by page and offset
+```
 GET /article?offset, amount, chrono
 response:
 {
@@ -56,7 +58,7 @@ response:
 		
 	]
 }
-
+```
 
 ```
 get an article
@@ -125,6 +127,7 @@ response
 	"count" : 10,
 	"tags" : ["work","play",]
 }
+```
 
 List all the languages
 ```
@@ -137,9 +140,10 @@ response
 ```
 
 List all the articles with a tag, language_tag or both
+```
 GET /search_article?tag=xxx&language_tag=xxx
 response
-```
+
 {
 	"count" : 10,
 	"articles" : [
