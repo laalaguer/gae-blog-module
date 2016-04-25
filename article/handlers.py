@@ -23,8 +23,9 @@ class CreateArticleHandler(webapp2.RequestHandler):
                 html_body = article['html_body']
                 tags = [x.lower() for x in article['tags']] # a list
                 language_tags = [x.lower() for x in article['language_tags']] # a list
+                private = article['private']
                 # store article
-                item = db.Article(title=title,author=author,html_body=html_body,tags=tags,language_tags=language_tags)
+                item = db.Article(title=title,author=author,html_body=html_body,tags=tags,language_tags=language_tags,private=private)
                 item.put()
                 # store tags
                 db.ArticleTag.add_tags(tags)

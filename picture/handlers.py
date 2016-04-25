@@ -6,6 +6,8 @@ import json
 from google.appengine.api import urlfetch
 import db
 import time
+from cStringIO import StringIO
+from PIL import Image as PILImage
 
 class ServeBlobHandler(blobstore_handlers.BlobstoreDownloadHandler):
     ''' Serve the images to the public '''

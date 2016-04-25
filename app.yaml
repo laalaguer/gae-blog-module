@@ -31,6 +31,9 @@ handlers:
   script: article_app.app
 
 libraries:
+- name: PIL
+  version: latest
+
 - name: webapp2
   version: "2.5.2"
 
