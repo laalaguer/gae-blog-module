@@ -62,6 +62,11 @@ class CreateArticleHandler(webapp2.RequestHandler):
             offset = int(self.request.get('offset',0))
             amount = int(self.request.get('amount',10))
             chrono = str(self.request.get('chrono', 'false'))
+            
+            next_offset = offset + amount
+            previous_offset = offset - amount if offset - amount > 0 else 0
+            
+            
             if chrono == 'true':
                 chrono = True
             else:
@@ -72,6 +77,15 @@ class CreateArticleHandler(webapp2.RequestHandler):
             d['articles'] = []
             for each in hits:
                 d['articles'].append(each.to_dict(exclude=['add_date','html_body']))
+            
+            d['has_next'] = True if d['count'] == amount else False
+            if d['count'] == amount:
+                d['next_offset'] = next_offset
+                
+            d['has_previous'] = True if offset > 0 else False
+            if offset > 0:
+                d['previous_offset'] = previous_offset
+            
             self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
 
         except Exception as ex:

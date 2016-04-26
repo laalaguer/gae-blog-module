@@ -237,9 +237,11 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
                 if '1600' in each['filename']:
                     arg_list_db['blob_1600'] = blobstore.BlobKey(each['blob_key'])
 
-            public_hash_id = db.add_processed_image(**arg_list_db)
+            public_hash_id = db.add_processed_image(**arg_list_db) # add the image information into db.
+            
             response2_loaded_object['public_hash_id'] = public_hash_id
             response2_loaded_object['process_time'] = elapsed_time
+            
             self.response.charset = 'utf-8'
             self.response.content_type = response2.headers['content-type']
             self.response.out.write(json.dumps(response2_loaded_object,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
@@ -272,7 +274,7 @@ class ImageStoreHandler(blobstore_handlers.BlobstoreUploadHandler):
         self.response.content_type = 'application/json'
         self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
 
-class DeleteProcessedImageCollectionHandler(webapp2.RequestHandler):
+class DeleteProcessedImageHandler(webapp2.RequestHandler):
     def get(self, public_hash_id):
         # prepare the response type
         self.response.charset = 'utf-8'
@@ -289,6 +291,76 @@ class DeleteProcessedImageCollectionHandler(webapp2.RequestHandler):
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
             self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
+    
+    def delete(self, public_hash_id):
+        self.get(public_hash_id)
+
+class GetProcessedImageHandler(webapp2.RequestHandler):
+    def get(self, public_hash_id):
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        try:
+            d['pictures'] = []
+            hits = db.ProcessedImages.query_by_hash(public_hash_id,allowed_user=False)
+            for each in hits:
+                d['pictures'].append(each.to_dict(exclude=['add_date']))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
+
+
+class ListProcessedImageHandler(webapp2.RequestHandler):
+    def get(self):
+        tag = self.request.get('tag', None)
+        offset = int(self.request.get('offset',0))
+        amount = int(self.request.get('amount',10))
+        next_offset = offset + amount
+        previous_offset = offset - amount if offset - amount > 0 else 0
+        
+        chrono = str(self.request.get('chrono', 'false'))
+        if chrono == 'true':
+            chrono = True
+        else:
+            chrono = False
+
+        # prepare the response type
+        self.response.charset = 'utf-8'
+        self.response.content_type = 'application/json'
+        # prepare the response object
+        d = {}
+        try:
+            d['pictures'] = []
+            hits = None
+            if tag:
+                hits = db.ProcessedImages.query_by_tags([tag],allowed_user=False)
+            else:
+                hits = db.ProcessedImages.query_by_page(offset, amount, chrono=chrono, allowed_user=False)
+                d['count'] = len(d['pictures'])
+                d['has_next'] = True if d['count'] == amount else False
+                if d['count'] == amount:
+                    d['next_offset'] = next_offset
+                
+                d['has_previous'] = True if offset > 0 else False
+                if offset > 0:
+                    d['previous_offset'] = previous_offset
+
+            for each in hits:
+                d['pictures'].append(each.to_dict(exclude=['add_date']))
+            
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+        except Exception as ex:
+            self.error(500)
+            d['success'] = False
+            d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            return
 
 
 class UpdateProcessedImageDescriptionHandler(webapp2.RequestHandler):
@@ -298,7 +370,8 @@ class UpdateProcessedImageDescriptionHandler(webapp2.RequestHandler):
         }
     '''
     def post(self, public_hash_id):
-        description = self.request.get('description','')
+        description = self.request.get('description',None)
+        public = self.request.get('public',None)
         
         # prepare the response type
         self.response.charset = 'utf-8'
@@ -306,13 +379,8 @@ class UpdateProcessedImageDescriptionHandler(webapp2.RequestHandler):
         # prepare the response object
         d = {}
         try:
-            hits = db.ProcessedImages.query_by_hash(public_hash_id)
-            if len(hits) > 0:
-                hits[0].description = description
-                hits[0].put() # store it
-                d['success'] = True
-            else:
-                d['success'] = False
+            db.update_processed_image(public_hash_id,description,public)
+            d['success'] = True
         except Exception as ex:
             self.error(500)
             d['success'] = False

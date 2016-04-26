@@ -32,7 +32,7 @@ class ProcessedImages(ndb.Model):
         self.last_touch_date_str = factor_one # refresh the 
         
         if self.description: # if description is not none, then update the tags token
-            self.tags = self.description.lower().split()
+            self.tags = list(set(self.description.lower().split()))
 
     @classmethod
     def query_by_hash(cls, hash_value, allowed_user=False):
@@ -47,13 +47,28 @@ class ProcessedImages(ndb.Model):
             return cls.query(cls.tags.IN(tags)).order(-cls.add_date).fetch()
         else:
             return cls.query(cls.tags.IN(tags), cls.public == True).order(-cls.add_date).fetch()
-
+    
+    @classmethod
+    def query_by_page(cls, page_offset, each_page_amount, chrono=False, allowed_user=False):
+        ''' if chronological, from far to near, query a results page by page'''
+        q = None
+        if allowed_user:
+            q = cls.query()
+        else:
+            q = cls.query(cls.public == True)
+            
+        if chrono == True:
+            return q.order(cls.add_date).fetch(offset=page_offset,limit=each_page_amount)
+            # return from offset, each page result limit.
+        else:
+            return q.order(-cls.add_date).fetch(offset=page_offset,limit=each_page_amount)
+            
     @classmethod
     def query_whole(cls, allowed_user=False):
         if allowed_user:
             return cls.query().order(-cls.add_date).fetch()
         else:
-            return return cls.query(cls.public == True).order(-cls.add_date).fetch()
+            return cls.query(cls.public == True).order(-cls.add_date).fetch()
 
 def add_processed_image(blob_256,blob_512,blob_800,blob_1600,description='',public=True):
     ''' public method for adding an processed image collection '''
@@ -74,3 +89,16 @@ def delete_processed_image(hash_id):
         each.key.delete() # delete matching entries.
 
     return length # return the deleted entries numbers
+
+def update_processed_image(hash_id, description=None, public=None):
+    ''' update description and publicity flag of an image '''
+    existing = ProcessedImages.query_by_hash(hash_id)
+    length = len(existing)
+    for each in existing:
+        if description:
+            each.description = description
+        if public != None:
+            each.public = public
+        
+        each.put()
+    return length
