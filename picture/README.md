@@ -3,6 +3,9 @@
 `db.py` the database, blobstore or NDB store
 
 `handlers.py` the related web handlers to deal around database, CRUD operations via http
+### Design of API and datastructure
+
+see [Design Document](./DESIGN.md)
 
 ### A blog site, a shopping site, not a Dropbox
 So this question is easy to answer. The images user upload maybe 3.4Mb but we can only serve the readers
