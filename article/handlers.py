@@ -4,11 +4,12 @@
 import webapp2
 import json
 import db
+from util import MyEncoder
 
 # the design priciples, you can see the README.md document in the package folder
 class CreateArticleHandler(webapp2.RequestHandler):
-    ''' a post handler, receives a json and create an article '''
     def post(self):
+        ''' a post handler, receives a json and create an article '''
         # prepare the response type
         self.response.charset = 'utf-8'
         self.response.content_type = 'application/json'
@@ -24,9 +25,9 @@ class CreateArticleHandler(webapp2.RequestHandler):
                 html_body = article['html_body']
                 tags = [x.lower() for x in article['tags']] # a list
                 language_tags = [x.lower() for x in article['language_tags']] # a list
-                private = article['private']
+                public = article['public']
                 # store article
-                item = db.Article(title=title,author=author,html_body=html_body,tags=tags,language_tags=language_tags,private=private)
+                item = db.Article(title=title,author=author,html_body=html_body,tags=tags,language_tags=language_tags,public=public)
                 item.put()
                 # store tags
                 db.ArticleTag.add_tags(tags)
@@ -35,19 +36,19 @@ class CreateArticleHandler(webapp2.RequestHandler):
                 # prepare reponse
                 d['success'] = True
                 d['public_hash_id'] = item.public_hash_id
-                self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+                self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
                 return
             else:
                 self.error(406)
                 d['success'] = False
                 d['fail_reason'] = 'json is empty'
-                self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+                self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
                 return
         except Exception as ex:
             self.error(406)
             d['success'] = False
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
 
     def get(self):
@@ -76,7 +77,7 @@ class CreateArticleHandler(webapp2.RequestHandler):
             d['count'] = len(hits)
             d['articles'] = []
             for each in hits:
-                d['articles'].append(each.to_dict(exclude=['add_date','html_body']))
+                d['articles'].append(each.to_dict(exclude=['html_body']))
             
             d['has_next'] = True if d['count'] == amount else False
             if d['count'] == amount:
@@ -86,11 +87,11 @@ class CreateArticleHandler(webapp2.RequestHandler):
             if offset > 0:
                 d['previous_offset'] = previous_offset
             
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
 
         except Exception as ex:
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
 
 
@@ -108,18 +109,18 @@ class OperateArticleHandler(webapp2.RequestHandler):
             articles = db.Article.query_by_hash(hash_id)
             if len(articles) > 0:
                 d['success'] = True
-                d['article'] = articles[0].to_dict(exclude=['add_date'])
+                d['article'] = articles[0].to_dict()
             else:
                 d['success'] = False
                 d['fail_reason'] = 'article not found'
 
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
         except Exception as ex:
             self.error(500)
             d['success'] = False
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
 
 
@@ -140,14 +141,14 @@ class OperateArticleHandler(webapp2.RequestHandler):
             self.error(406)
             d['success'] = False
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
         
         try:
             # search for the article in database, then return the article as json
             articles = db.Article.query_by_hash(hash_id)
             if len(articles) > 0:
-                target = articles[0].to_dict(exclude=['add_date','last_touch_date_str','public_hash_id']) # we don't allow other modification
+                target = articles[0].to_dict(exclude=['add_date','last_touch_date','public_hash_id']) # we don't allow other modification
 
                 for key in article.keys():
                     if key in target.keys():
@@ -172,13 +173,13 @@ class OperateArticleHandler(webapp2.RequestHandler):
                 d['success'] = False
                 d['fail_reason'] = 'article not found'
 
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
         except Exception as ex:
             self.error(500)
             d['success'] = False
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
     
     def delete(self, hash_id):
@@ -196,13 +197,13 @@ class OperateArticleHandler(webapp2.RequestHandler):
                 for each in articles:
                     each.key.delete()
             d['success'] = True
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
         except Exception as ex:
             self.error(500)
             d['success'] = False
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
 
 
@@ -232,17 +233,17 @@ class SearchArticleByTagHandler(webapp2.RequestHandler):
                 d['count'] = len(hits)
                 d['articles'] = []
                 for each in hits:
-                    d['articles'].append(each.to_dict(exclude=['add_date','html_body']))
+                    d['articles'].append(each.to_dict(exclude=['html_body']))
             else:
                 d['count'] = 0
 
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
         except Exception as ex:
             self.error(500)
             d['success'] = False
             d['fail_reason'] = 'Exception: %s, Message: %s' % (type(ex).__name__ , str(ex))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
 
 class ListTagsHandler(webapp2.RequestHandler):
@@ -255,7 +256,7 @@ class ListTagsHandler(webapp2.RequestHandler):
         hits = db.ArticleTag.query_one()
         d['tags'] = hits[0].tags
         d['count'] = len(hits[0].tags)
-        self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+        self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
 
 class ListLanguageTagsHandler(webapp2.RequestHandler):
     def get(self):
@@ -267,4 +268,4 @@ class ListLanguageTagsHandler(webapp2.RequestHandler):
         hits = db.LanguageTag.query_one()
         d['tags'] = hits[0].tags
         d['count'] = len(hits[0].tags)
-        self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+        self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))

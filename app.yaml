@@ -11,9 +11,11 @@ handlers:
 - url: /js
   static_dir: html/js
 
+- url: /user/.*
+  script: user_app.app
+
 - url: /picture/.*
   script: picture_app.app
-  login: admin
 
 - url: /tags
   script: article_app.app

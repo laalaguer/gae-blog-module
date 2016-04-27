@@ -74,7 +74,7 @@ Response as json object
 
 User get an image list by time (default) or by tag
 ```
-GET /list?tag=xxx
+GET /list?tag=xxx&offset=xxx&amount=xxx
 Response as json object
 {
 	'pictures': [

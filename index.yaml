@@ -53,3 +53,9 @@ indexes:
   - name: public_hash_id
   - name: add_date
     direction: desc
+
+- kind: ProcessedImages
+  properties:
+  - name: tags
+  - name: add_date
+    direction: desc

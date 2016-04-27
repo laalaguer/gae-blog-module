@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Hello {{ user_nickname }}</title>
+    </head>
+    <body>
+    	<h1>Hello {{ user_nickname }}: {{ user_email }}</h1>
+    	{% if user_is_admin %}
+    		<p>You are admin</p>
+    		<p>You can add allowed authors to your blog site</p>
+    		<form action="{{ action_url }}" method="post">
+    			<input type="email" placeholder="abc@abc.com" name="email" required>
+    			<button type="submit">Submit</button>
+    		</form>
+    	{% else %}
+    		<p>You are NOT admin</p>
+    	{% endif %}
+
+    	{% if user_logged_in %}
+    		<p><a href="{{ logout_url }}">You have logged in, Logout here</a></p>
+    	{% else %}
+    		<p><a href="{{ login_url }}">You have not logged in, Login here</a></p>
+    	{% endif %}
+    </body>
+</html>

@@ -16,12 +16,22 @@ config['refresh_url'] = '/picture/refresh_url'
 config['delete_image_collection'] = '/picture/delete_by_hash/'
 
 app = webapp2.WSGIApplication(routes=[
+	# private to admin
     webapp2.Route('/picture/dropzone_upload_example', handler=picture.handlers.DropzoneExampleHandler),
+    # private to admin
     webapp2.Route('/picture/refresh_url', handler=picture.handlers.RefreshUploadUrlHandler),
+    # private to admin
     webapp2.Route('/picture/pre_receive', handler=picture.handlers.ImagePreProcessHandler),
+    # private to admin
     webapp2.Route('/picture/blob_store_final', handler=picture.handlers.ImageStoreHandler),
+    # public, no restriction
     webapp2.Route('/picture/view_photo/<photo_key>', handler=picture.handlers.ServeBlobHandler),
+    # private to admin
     webapp2.Route('/picture/delete_by_hash/<public_hash_id>', handler=picture.handlers.DeleteProcessedImageHandler),
+    # public
     webapp2.Route('/picture/get_by_hash/<public_hash_id>', handler=picture.handlers.GetProcessedImageHandler),
+    # private to admin
     webapp2.Route('/picture/update_description/<public_hash_id>', handler=picture.handlers.UpdateProcessedImageDescriptionHandler),
+    # public
+    webapp2.Route('/picture/list_all', handler=picture.handlers.ListProcessedImageHandler),
 ], debug=True, config=config)

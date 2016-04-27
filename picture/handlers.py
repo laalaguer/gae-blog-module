@@ -9,6 +9,7 @@ import time
 from cStringIO import StringIO
 from PIL import Image as PILImage
 from PIL import ImageOps as PILImageOps
+from util import MyEncoder
 
 class ServeBlobHandler(blobstore_handlers.BlobstoreDownloadHandler):
     ''' Serve the images to the public '''
@@ -244,7 +245,7 @@ class ImagePreProcessHandler(blobstore_handlers.BlobstoreUploadHandler):
             
             self.response.charset = 'utf-8'
             self.response.content_type = response2.headers['content-type']
-            self.response.out.write(json.dumps(response2_loaded_object,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(response2_loaded_object,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             # delete the original file uploaded to blobstore,all of them
             [blobstore.delete(each.key()) for each in self.get_uploads('file')]
              
@@ -272,7 +273,7 @@ class ImageStoreHandler(blobstore_handlers.BlobstoreUploadHandler):
 
         self.response.charset = 'utf-8'
         self.response.content_type = 'application/json'
-        self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+        self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
 
 class DeleteProcessedImageHandler(webapp2.RequestHandler):
     def get(self, public_hash_id):
@@ -304,10 +305,10 @@ class GetProcessedImageHandler(webapp2.RequestHandler):
         d = {}
         try:
             d['pictures'] = []
-            hits = db.ProcessedImages.query_by_hash(public_hash_id,allowed_user=False)
+            hits = db.ProcessedImages.query_by_hash(public_hash_id)
             for each in hits:
-                d['pictures'].append(each.to_dict(exclude=['add_date']))
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+                d['pictures'].append(each.to_dict())
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
         except Exception as ex:
             self.error(500)
             d['success'] = False
@@ -318,31 +319,31 @@ class GetProcessedImageHandler(webapp2.RequestHandler):
 
 class ListProcessedImageHandler(webapp2.RequestHandler):
     def get(self):
-        tag = self.request.get('tag', None)
-        offset = int(self.request.get('offset',0))
-        amount = int(self.request.get('amount',10))
-        next_offset = offset + amount
-        previous_offset = offset - amount if offset - amount > 0 else 0
-        
-        chrono = str(self.request.get('chrono', 'false'))
-        if chrono == 'true':
-            chrono = True
-        else:
-            chrono = False
-
         # prepare the response type
         self.response.charset = 'utf-8'
         self.response.content_type = 'application/json'
         # prepare the response object
         d = {}
         try:
+            tag = self.request.get('tag', None)
+            offset = int(self.request.get('offset',0))
+            amount = int(self.request.get('amount',10))
+            next_offset = offset + amount
+            previous_offset = offset - amount if offset - amount > 0 else 0
+            
+            chrono = str(self.request.get('chrono', 'false'))
+            if chrono == 'true':
+                chrono = True
+            else:
+                chrono = False
+
             d['pictures'] = []
             hits = None
             if tag:
-                hits = db.ProcessedImages.query_by_tags([tag],allowed_user=False)
+                hits = db.ProcessedImages.query_by_tags([tag])
             else:
-                hits = db.ProcessedImages.query_by_page(offset, amount, chrono=chrono, allowed_user=False)
-                d['count'] = len(d['pictures'])
+                hits = db.ProcessedImages.query_by_page(offset, amount, chrono=chrono)
+                d['count'] = len(hits)
                 d['has_next'] = True if d['count'] == amount else False
                 if d['count'] == amount:
                     d['next_offset'] = next_offset
@@ -352,9 +353,9 @@ class ListProcessedImageHandler(webapp2.RequestHandler):
                     d['previous_offset'] = previous_offset
 
             for each in hits:
-                d['pictures'].append(each.to_dict(exclude=['add_date']))
+                d['pictures'].append(each.to_dict())
             
-            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
+            self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
         except Exception as ex:
             self.error(500)
             d['success'] = False
@@ -372,6 +373,8 @@ class UpdateProcessedImageDescriptionHandler(webapp2.RequestHandler):
     def post(self, public_hash_id):
         description = self.request.get('description',None)
         public = self.request.get('public',None)
+        if public: # if we have some content inside the public
+            public = False if public.lower() == 'false' else True
         
         # prepare the response type
         self.response.charset = 'utf-8'
@@ -381,6 +384,7 @@ class UpdateProcessedImageDescriptionHandler(webapp2.RequestHandler):
         try:
             db.update_processed_image(public_hash_id,description,public)
             d['success'] = True
+            self.response.out.write(json.dumps(d,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
         except Exception as ex:
             self.error(500)
             d['success'] = False
