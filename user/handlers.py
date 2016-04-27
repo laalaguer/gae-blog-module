@@ -65,11 +65,13 @@ class DetectUser(BaseHandler):
             d['login_url'] = self.get_login_url()
         elif self.user_is_blog_admin() is False:
             d['user_is_admin'] = False
+            d['user_is_allowed_author'] = self.user_is_allowed_author()
             d['user_logged_in'] = True
             d['user_nickname'],d['user_email'] = self.get_user_nickname_email()
             d['logout_url'] = self.get_logout_url()
         else:
             d['user_is_admin'] = True
+            d['user_is_allowed_author'] = self.user_is_allowed_author()
             d['user_logged_in'] = True
             d['action_url'] = self.app.config['action_url']
             d['user_nickname'],d['user_email'] = self.get_user_nickname_email()

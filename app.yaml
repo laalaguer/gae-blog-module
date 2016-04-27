@@ -16,6 +16,7 @@ handlers:
 
 - url: /picture/.*
   script: picture_app.app
+  login: admin
 
 - url: /tags
   script: article_app.app
