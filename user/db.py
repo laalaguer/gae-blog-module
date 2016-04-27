@@ -1,6 +1,10 @@
 from google.appengine.ext import ndb
 
 class AllowedBlogAuthor(ndb.Model):
+	''' Your co-worker, the same person who edits the blog site
+		Well, as admin user of this site you can bring co-worker in
+		and kick him out. :D
+	'''
 	email = ndb.StringProperty(default='')
 
 	@classmethod

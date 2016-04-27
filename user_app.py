@@ -8,7 +8,7 @@ jinja_environment = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.di
 # this config is shared accross all the application, so use wisely.
 config = {}
 config['jinja2_env'] = jinja_environment
-config['blog_admins'] = ['laalaguer@gmail.com']
+config['blog_admins'] = ['your-blog-admin@gmail.com']
 config['action_url'] = '/user/allowed_author'
 
 app = webapp2.WSGIApplication(routes=[
