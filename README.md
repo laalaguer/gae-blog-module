@@ -38,3 +38,6 @@ They have different powers:
 2. Common user allowed to view private available content, but some actions will get 406 not allowed.
 3. Co-worker can upload artciles, pictures and view private content.
 4. Blog site owner can upload articles, pictures, and also add/remove co-worker in the website.
+
+### `gaesession` module
+This is the google app engine session managment module
