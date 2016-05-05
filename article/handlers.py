@@ -123,7 +123,9 @@ class OperateArticleHandler(webapp2.RequestHandler):
             self.response.out.write(json.dumps(d,cls=MyEncoder,ensure_ascii=False,indent=2, sort_keys=True).encode('utf-8'))
             return
 
-
+    def post(self, hash_id):
+        self.put(hash_id)
+        
     def put(self, hash_id):
         ''' modify a field, or fields of an artile '''
         # prepare the response type
@@ -169,6 +171,7 @@ class OperateArticleHandler(webapp2.RequestHandler):
                 articles[0].put()
                 print 'after put, tags',articles[0].tags
                 d['success'] = True
+                d['public_hash_id'] = articles[0].public_hash_id
             else:
                 d['success'] = False
                 d['fail_reason'] = 'article not found'
