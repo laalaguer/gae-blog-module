@@ -33,6 +33,12 @@ handlers:
 - url: /article/.*
   script: article_app.app
 
+- url: /gaesession/.*
+  script: gaesession_app.app
+
+- url: /gaesessionwith/.*
+  script: gaesession_app.app
+  
 libraries:
 - name: PIL
   version: latest
