@@ -13,4 +13,7 @@ config['webapp2_extras.sessions'] = {
 
 app = webapp2.WSGIApplication(routes=[
     webapp2.Route('/gaesession/', handler=gaesession.handlers.MainHandler),
+    webapp2.Route('/gaesessionwith/<photo_key>', handler=gaesession.handlers.MainHandlerWithArguments),
+    webapp2.Route('/gaesession/upload', handler='gaesession.handlers.MyUploadHandler:my_post_dispatch'),
+    webapp2.Route('/gaesession/download/<photo_key>', handler='gaesession.handlers.ServeBlobHandler:my_get_dispatch'),
 ], debug=True, config=config)
