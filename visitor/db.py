@@ -1,7 +1,7 @@
 from google.appengine.ext import ndb
 
 class VisitorCount(ndb.Model):
-    name = ndb.StringProperty() # name of the count
+    name = ndb.StringProperty() # name of the count, usually the page name
     count = ndb.IntegerProperty() # count of the count
     
     touch_date = ndb.DateTimeProperty(auto_now=True) # the date it is touched
@@ -10,6 +10,10 @@ class VisitorCount(ndb.Model):
     @classmethod
     def query_by_name(cls, name):
         return cls.query(cls.name == name).get()
+
+    @classmethod
+    def query_order_by_count(cls):
+        return cls.query().order(-cls.count).fetch()
     
 def add_a_visitor(name):
     m = VisitorCount.query_by_name(name)
